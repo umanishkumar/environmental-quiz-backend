@@ -73,4 +73,14 @@ public class QuizController {
         QuizResponse response = quizService.generateAndSaveQuiz(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+    @PostMapping("/{quizId}/questions/{questionId}/regenerate")
+    public ResponseEntity<QuizResponse> regenerateQuestion(
+            @PathVariable Long quizId,
+            @PathVariable Long questionId) {
+        return ResponseEntity.ok(quizService.regenerateQuestion(quizId, questionId));
+    }
+    @PostMapping("/{quizId}/regenerate")
+    public ResponseEntity<QuizResponse> regenerateQuiz(@PathVariable Long quizId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(quizService.regenerateQuiz(quizId));
+    }
 }

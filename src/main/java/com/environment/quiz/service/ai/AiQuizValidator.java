@@ -2,6 +2,7 @@ package com.environment.quiz.service.ai;
 
 import com.environment.quiz.dto.quiz.ai.AiQuestionResponse;
 import com.environment.quiz.dto.quiz.ai.AiQuizResponse;
+import com.environment.quiz.dto.quiz.ai.AiSingleQuestionResponse;
 import com.environment.quiz.exception.InvalidAiOutputException;
 import org.springframework.stereotype.Component;
 
@@ -88,5 +89,35 @@ public class AiQuizValidator {
             throw new InvalidAiOutputException("Missing explanation for question: " + q.question());
         }
         // hint is optional per Section 5 — deliberately not validated as required
+    }
+    public void validateSingleQuestionPublic(AiSingleQuestionResponse response) {
+        if (response == null) {
+            throw new InvalidAiOutputException("AI returned no response for question regeneration");
+        }
+        if (response.question() == null || response.question().isBlank()) {
+            throw new InvalidAiOutputException("Regenerated question has empty text");
+        }
+        if (response.question().trim().length() < MIN_QUESTION_LENGTH) {
+            throw new InvalidAiOutputException("Regenerated question text is unreasonably short");
+        }
+        if (response.options() == null || response.options().size() != REQUIRED_OPTION_COUNT) {
+            throw new InvalidAiOutputException("Regenerated question must have exactly " + REQUIRED_OPTION_COUNT + " options");
+        }
+        for (String option : response.options()) {
+            if (option == null || option.isBlank()) {
+                throw new InvalidAiOutputException("An option is empty in regenerated question");
+            }
+        }
+        if (response.correctAnswer() == null || response.correctAnswer().isBlank()) {
+            throw new InvalidAiOutputException("Missing correct answer for regenerated question");
+        }
+        boolean correctAnswerExistsInOptions = response.options().stream()
+                .anyMatch(opt -> opt.trim().equalsIgnoreCase(response.correctAnswer().trim()));
+        if (!correctAnswerExistsInOptions) {
+            throw new InvalidAiOutputException("Correct answer does not match any option in regenerated question");
+        }
+        if (response.explanation() == null || response.explanation().isBlank()) {
+            throw new InvalidAiOutputException("Missing explanation for regenerated question");
+        }
     }
 }

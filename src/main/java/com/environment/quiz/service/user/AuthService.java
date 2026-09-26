@@ -3,8 +3,10 @@ package com.environment.quiz.service.user;
 import com.environment.quiz.dto.auth.AuthResponse;
 import com.environment.quiz.dto.auth.LoginRequest;
 import com.environment.quiz.dto.auth.RegisterRequest;
+import com.environment.quiz.dto.auth.UserProfileResponse;
 import com.environment.quiz.entity.User;
 import com.environment.quiz.repository.UserRepository;
+import com.environment.quiz.security.CurrentUserProvider;
 import com.environment.quiz.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,6 +23,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final CurrentUserProvider currentUserProvider;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -56,5 +59,16 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getUsername());
         return new AuthResponse(token, user.getUsername(), user.getRole().name());
+    }
+
+    public UserProfileResponse getProfile() {
+        User user = currentUserProvider.getCurrentUser();
+        return new UserProfileResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRole().name(),
+                user.getCreatedAt()
+        );
     }
 }

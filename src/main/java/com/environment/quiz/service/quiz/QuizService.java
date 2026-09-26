@@ -175,4 +175,76 @@ public class QuizService {
             throw new IllegalArgumentException("Invalid question type: " + questionType + ". Only MCQ is supported.");
         }
     }
+    @Transactional
+    public QuizResponse regenerateQuestion(Long quizId, Long questionId) {
+        User user = currentUserProvider.getCurrentUser();
+
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found with id: " + quizId));
+
+        if (!quiz.getUser().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException("Quiz not found with id: " + quizId);
+        }
+
+        Question questionToReplace = quiz.getQuestions().stream()
+                .filter(q -> q.getId().equals(questionId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Question " + questionId + " not found in quiz " + quizId));
+
+        List<String> existingQuestionTexts = quiz.getQuestions().stream()
+                .filter(q -> !q.getId().equals(questionId))
+                .map(Question::getQuestionText)
+                .toList();
+
+        var aiQuestion = quizAIService.regenerateSingleQuestion(
+                quiz.getTopic().getName(),
+                quiz.getDifficulty().name(),
+                quiz.getQuestionType().name(),
+                quiz.getLanguage(),
+                existingQuestionTexts
+        );
+
+        // Replace the old question's content in place rather than swapping entity
+        // identity — keeps the same Question row/id, simpler for any existing
+        // UserAnswer rows that may already reference it.
+        questionToReplace.setQuestionText(aiQuestion.question());
+        questionToReplace.setExplanation(aiQuestion.explanation());
+        questionToReplace.setHint(aiQuestion.hint());
+        questionToReplace.getOptions().clear();
+
+        for (String optionText : aiQuestion.options()) {
+            boolean isCorrect = optionText.trim().equalsIgnoreCase(aiQuestion.correctAnswer().trim());
+            QuestionOption option = QuestionOption.builder()
+                    .question(questionToReplace)
+                    .optionText(optionText)
+                    .isCorrect(isCorrect)
+                    .build();
+            questionToReplace.getOptions().add(option);
+        }
+
+        Quiz saved = quizRepository.save(quiz);
+        return quizMapper.toQuizResponse(saved);
+    }
+    @Transactional
+    public QuizResponse regenerateQuiz(Long quizId) {
+        User user = currentUserProvider.getCurrentUser();
+
+        Quiz existingQuiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found with id: " + quizId));
+
+        if (!existingQuiz.getUser().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException("Quiz not found with id: " + quizId);
+        }
+
+        QuizGenerationRequest request = new QuizGenerationRequest(
+                existingQuiz.getTopic().getName(),
+                existingQuiz.getDifficulty().name(),
+                existingQuiz.getNumberOfQuestions(),
+                existingQuiz.getQuestionType().name(),
+                existingQuiz.getLanguage()
+        );
+
+        return generateAndSaveQuiz(request);
+    }
 }

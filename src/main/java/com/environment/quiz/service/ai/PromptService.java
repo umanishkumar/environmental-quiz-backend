@@ -2,6 +2,8 @@ package com.environment.quiz.service.ai;
 
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class PromptService {
 
@@ -38,28 +40,39 @@ public class PromptService {
                                   String questionType, String language, String retrievedContext) {
 
         String difficultyInstructions = buildDifficultyInstructions(difficulty);
-        String referenceFactsBlock = buildReferenceFactsBlock(retrievedContext);
+
+        String groundingSection = (retrievedContext == null || retrievedContext.isBlank())
+                ? ""
+                : """
+
+              Use the following verified reference material as factual grounding.
+              Base your questions on this information where relevant, but do not
+              quote it verbatim — write original questions:
+              ---
+              %s
+              ---
+              """.formatted(retrievedContext);
 
         return """
-                Generate a quiz with the following parameters:
-                Topic: %s
-                Difficulty: %s
-                Number of questions: %d
-                Question type: %s
-                Language: %s
-                %s
-                Difficulty-specific guidance:
-                %s
+            Generate a quiz with the following parameters:
+            Topic: %s
+            Difficulty: %s
+            Number of questions: %d
+            Question type: %s
+            Language: %s
+            %s
+            Difficulty-specific guidance:
+            %s
 
-                General requirements:
-                - All %d questions must be unique and non-overlapping in what they test.
-                - Each question must have exactly 4 answer options.
-                - Exactly one of the 4 options must be marked as correct.
-                - Include a short explanation (1-2 sentences) for the correct answer.
-                - Include a short, optional hint that does not give away the answer.
-                - Write all question and answer text in the specified language.
-                """.formatted(topic, difficulty, numberOfQuestions, questionType, language,
-                referenceFactsBlock, difficultyInstructions, numberOfQuestions);
+            General requirements:
+            - All %d questions must be unique and non-overlapping in what they test.
+            - Each question must have exactly 4 answer options.
+            - Exactly one of the 4 options must be marked as correct.
+            - Include a short explanation (1-2 sentences) for the correct answer.
+            - Include a short, optional hint that does not give away the answer.
+            - Write all question and answer text in the specified language.
+            """.formatted(topic, difficulty, numberOfQuestions, questionType, language,
+                groundingSection, difficultyInstructions, numberOfQuestions);
     }
 
     private String buildReferenceFactsBlock(String retrievedContext) {
@@ -98,5 +111,46 @@ public class PromptService {
                     - Use a moderate level of difficulty appropriate for a general learner.
                     """;
         };
+    }
+    public String buildSingleQuestionPrompt(String topic, String difficulty, String questionType,
+                                            String language, List<String> existingQuestionTexts,
+                                            String retrievedContext) {
+
+        String difficultyInstructions = buildDifficultyInstructions(difficulty);
+
+        String groundingSection = (retrievedContext == null || retrievedContext.isBlank())
+                ? ""
+                : """
+
+              Use the following verified reference material as factual grounding:
+              ---
+              %s
+              ---
+              """.formatted(retrievedContext);
+
+        String existingQuestionsBlock = existingQuestionTexts.isEmpty()
+                ? "None."
+                : String.join("\n- ", existingQuestionTexts);
+
+        return """
+            Generate exactly ONE new quiz question with the following parameters:
+            Topic: %s
+            Difficulty: %s
+            Question type: %s
+            Language: %s
+            %s
+            Difficulty-specific guidance:
+            %s
+
+            This question must NOT duplicate or closely resemble any of these existing questions:
+            - %s
+
+            Requirements:
+            - Exactly 4 answer options.
+            - Exactly one option must be correct.
+            - Include a short explanation (1-2 sentences) for the correct answer.
+            - Include a short, optional hint that does not give away the answer.
+            """.formatted(topic, difficulty, questionType, language, groundingSection,
+                difficultyInstructions, existingQuestionsBlock);
     }
 }
