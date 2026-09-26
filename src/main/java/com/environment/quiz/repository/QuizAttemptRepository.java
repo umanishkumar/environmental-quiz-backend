@@ -7,7 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
+import com.environment.quiz.dto.dashboard.TopicPerformance;
+import com.environment.quiz.dto.dashboard.DifficultyPerformance;
 import java.util.List;
 
 public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> {
@@ -21,4 +22,24 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> 
 
     @Query("SELECT MAX(a.percentage) FROM QuizAttempt a WHERE a.user = :user")
     Double findBestPercentageByUser(@Param("user") User user);
+    long countByUser(User user);
+
+    @Query("""
+        SELECT new com.environment.quiz.dto.dashboard.TopicPerformance(
+            a.quiz.topic.name, COUNT(a), AVG(a.percentage))
+        FROM QuizAttempt a
+        WHERE a.user = :user
+        GROUP BY a.quiz.topic.name
+        ORDER BY AVG(a.percentage) ASC
+        """)
+    List<TopicPerformance> findTopicPerformanceByUser(@Param("user") User user);
+
+    @Query("""
+        SELECT new com.environment.quiz.dto.dashboard.DifficultyPerformance(
+            CAST(a.quiz.difficulty AS string), COUNT(a), AVG(a.percentage))
+        FROM QuizAttempt a
+        WHERE a.user = :user
+        GROUP BY a.quiz.difficulty
+        """)
+    List<DifficultyPerformance> findDifficultyPerformanceByUser(@Param("user") User user);
 }

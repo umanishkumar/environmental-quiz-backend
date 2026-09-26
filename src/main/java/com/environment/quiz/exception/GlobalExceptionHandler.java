@@ -84,4 +84,16 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.internalServerError().body(body);
     }
+    @ExceptionHandler(InvalidAiOutputException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidAiOutput(InvalidAiOutputException ex, HttpServletRequest request) {
+        ErrorResponse body = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_GATEWAY.value(),
+                "AI Generation Failed",
+                "The AI was unable to generate a valid quiz. Please try again.",
+                request.getRequestURI(),
+                null
+        );
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(body);
+    }
 }

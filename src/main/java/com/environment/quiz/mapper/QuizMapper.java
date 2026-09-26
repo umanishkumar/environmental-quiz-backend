@@ -5,7 +5,8 @@ import com.environment.quiz.dto.quiz.QuestionResponse;
 import com.environment.quiz.dto.quiz.QuizResponse;
 import com.environment.quiz.entity.Quiz;
 import org.springframework.stereotype.Component;
-
+import com.environment.quiz.dto.quiz.QuizHistoryItemResponse;
+import com.environment.quiz.entity.QuizAttempt;
 import java.util.List;
 
 @Component
@@ -31,6 +32,19 @@ public class QuizMapper {
                 quiz.getNumberOfQuestions(),
                 questionResponses,
                 quiz.getCreatedAt()
+        );
+    }
+    public QuizHistoryItemResponse toHistoryItem(QuizAttempt attempt) {
+        return new QuizHistoryItemResponse(
+                attempt.getId(),
+                attempt.getQuiz().getId(),
+                attempt.getQuiz().getTitle(),
+                attempt.getQuiz().getTopic().getName(),
+                attempt.getQuiz().getDifficulty().name(),
+                attempt.getPercentage(),
+                attempt.getCorrectAnswers(),
+                attempt.getTotalQuestions(),
+                attempt.getCreatedAt()
         );
     }
 }

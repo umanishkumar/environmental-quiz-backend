@@ -11,7 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
+import com.environment.quiz.dto.quiz.QuizGenerationRequest;
 import java.util.List;
 
 @RestController
@@ -68,4 +68,9 @@ public class QuizController {
             @jakarta.validation.constraints.NotEmpty(message = "Questions list cannot be empty")
             List<QuizService.ManualQuestionInput> questions
     ) {}
+    @PostMapping("/generate")
+    public ResponseEntity<QuizResponse> generateQuiz(@Valid @RequestBody QuizGenerationRequest request) {
+        QuizResponse response = quizService.generateAndSaveQuiz(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 }

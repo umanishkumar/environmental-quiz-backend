@@ -1,4 +1,5 @@
-package com.environment.quiz.security;
+
+        package com.environment.quiz.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -21,10 +22,13 @@ public class JwtService {
     private long expirationMs;
 
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        return Keys.hmacShaKeyFor(
+                secret.getBytes(StandardCharsets.UTF_8)
+        );
     }
 
     public String generateToken(String username) {
+
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
 
@@ -41,20 +45,34 @@ public class JwtService {
     }
 
     public boolean isTokenValid(String token, String expectedUsername) {
+
         String username = extractUsername(token);
-        return username.equals(expectedUsername) && !isTokenExpired(token);
+
+        return username != null
+                && username.equals(expectedUsername)
+                && !isTokenExpired(token);
     }
 
     private boolean isTokenExpired(String token) {
-        return extractClaim(token, Claims::getExpiration).before(new Date());
+
+        Date expiration =
+                extractClaim(token, Claims::getExpiration);
+
+        return expiration.before(new Date());
     }
 
-    private <T> T extractClaim(String token, Function<Claims, T> resolver) {
+    private <T> T extractClaim(
+            String token,
+            Function<Claims, T> resolver
+    ) {
+
         Claims claims = Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+
         return resolver.apply(claims);
     }
 }
+
