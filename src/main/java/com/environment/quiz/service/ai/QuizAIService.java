@@ -17,12 +17,16 @@ public class QuizAIService {
     private final ChatClient chatClient;
     private final PromptService promptService;
     private final AiQuizValidator aiQuizValidator;
+    private final EnvironmentalKnowledgeRetriever knowledgeRetriever;
 
     public AiQuizResponse generateQuiz(String topic, String difficulty, int numberOfQuestions,
                                        String questionType, String language) {
 
+        String retrievedContext = knowledgeRetriever.retrieveContext(topic);
+
         String systemPrompt = promptService.buildSystemPrompt();
-        String userPrompt = promptService.buildUserPrompt(topic, difficulty, numberOfQuestions, questionType, language);
+        String userPrompt = promptService.buildUserPrompt(
+                topic, difficulty, numberOfQuestions, questionType, language, retrievedContext);
 
         InvalidAiOutputException lastFailure = null;
 

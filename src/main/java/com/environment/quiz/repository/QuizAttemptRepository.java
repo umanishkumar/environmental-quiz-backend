@@ -1,5 +1,5 @@
 package com.environment.quiz.repository;
-
+import com.environment.quiz.dto.leaderboard.LeaderboardEntry;
 import com.environment.quiz.entity.QuizAttempt;
 import com.environment.quiz.entity.User;
 import org.springframework.data.domain.Page;
@@ -42,4 +42,12 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> 
         GROUP BY a.quiz.difficulty
         """)
     List<DifficultyPerformance> findDifficultyPerformanceByUser(@Param("user") User user);
+    @Query("""
+    SELECT new com.environment.quiz.dto.leaderboard.LeaderboardEntry(
+        a.user.username, COUNT(a), AVG(a.percentage), MAX(a.percentage))
+    FROM QuizAttempt a
+    GROUP BY a.user.username
+    ORDER BY AVG(a.percentage) DESC
+    """)
+    List<LeaderboardEntry> findLeaderboard();
 }
